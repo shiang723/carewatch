@@ -29,7 +29,7 @@ public class AlertController {
      * Returns the live evaluated priority state of a single patient
      */
     @GetMapping("/patient/{patientId}/status")
-    public ResponseEntity<PatientStatus> getPatientStatus(@PathVariable String patientId) {
+    public ResponseEntity<PatientStatus> getPatientStatus(@PathVariable("patientId") String patientId) {
 
         Optional<VitalReading> latestVitals = patientService.getCurrentVitals(patientId);
         PatientStatus currentStatus = alertService.determinePatientStatus(patientId, latestVitals);
@@ -49,7 +49,7 @@ public class AlertController {
     }
 
     @PatchMapping("/{id}/acknowledge")
-    public ResponseEntity<Alert> acknowledgeAlert(@PathVariable Long id) {
+    public ResponseEntity<Alert> acknowledgeAlert(@PathVariable("id") Long id) {
         return alertService.acknowledgeAlert(id)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
