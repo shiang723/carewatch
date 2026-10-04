@@ -55,7 +55,7 @@ public class AlertService
         }
         else if (heartRate > MAX_HEART_RATE_STABLE && heartRate <= HEART_RATE_HIGH_THRESHOLD) {
             priority = "MONITOR";
-            reasons.add("Elevated heart rate.");
+            reasons.add("Higher heart rate than normal.");
         }
         else if (heartRate < MIN_HEART_RATE_STABLE && heartRate >= MIN_HEART_RATE_MONITOR_BELOW) {
             priority = "MONITOR";
@@ -67,7 +67,7 @@ public class AlertService
             reasons.add("Normal oxygen saturation.");
         }
         else if (spO2 >= SPO2_MONITOR_MIN_THRESHOLD){
-            priority = "MONITOR";
+            priority = !priority.equals("HIGH") ?"MONITOR": "HIGH";
             reasons.add("Lower oxygen saturation than normal.");
         } else {
             priority = "HIGH";
@@ -81,7 +81,7 @@ public class AlertService
             priority = "HIGH";
             reasons.add( temperature < TEMPERATURE_HIGH_LOW_THRESHOLD? "Temperature is too low.": "Temperature is too high.");
         } else{
-            priority = "MONITOR";
+            priority = !priority.equals("HIGH") ?"MONITOR": "HIGH";
             reasons.add(temperature < TEMPERATURE_STABLE_MIN? "Temperature is lower than normal." : "Temperature is higher than normal.");
         }
 
