@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
     Search,
     AlertTriangle,
@@ -10,7 +11,8 @@ import {
     Check
 } from 'lucide-react';
 
-export default function AlertsPage({ alerts = [], onAcknowledge, onResolve }) {
+export default function AlertsPage({ alerts = [], onAcknowledge, error = '' }) {
+    const navigate = useNavigate();
     const [searchQuery, setSearchQuery] = useState('');
     const [severityFilter, setSeverityFilter] = useState('ALL');
     const [statusFilter, setStatusFilter] = useState('ALL');
@@ -25,18 +27,18 @@ export default function AlertsPage({ alerts = [], onAcknowledge, onResolve }) {
                     borderColor: '#fca5a5',
                     icon: <ShieldAlert size={18} color="#dc2626" />
                 };
-            case 'MEDIUM':
+            case 'MONITOR':
                 return {
-                    label: 'MEDIUM',
+                    label: 'MONITOR',
                     color: '#b45309',
                     bgColor: '#fef3c7',
                     borderColor: '#fde68a',
                     icon: <AlertTriangle size={18} color="#d97706" />
                 };
-            case 'LOW':
+            case 'STABLE':
             default:
                 return {
-                    label: 'LOW',
+                    label: 'STABLE',
                     color: '#1d4ed8',
                     bgColor: '#dbeafe',
                     borderColor: '#bfdbfe',
@@ -46,6 +48,12 @@ export default function AlertsPage({ alerts = [], onAcknowledge, onResolve }) {
     };
 
     const filteredAlerts = useMemo(() => {
+        const severityOrder = {
+            HIGH: 0,
+            MONITOR: 1,
+            STABLE: 2
+        };
+
         return alerts.filter(alert => {
             const matchesSearch =
                 alert.patientId.toLowerCase().includes(searchQuery.toLowerCase().trim()) ||
@@ -56,6 +64,9 @@ export default function AlertsPage({ alerts = [], onAcknowledge, onResolve }) {
             const matchesStatus = statusFilter === 'ALL' || alert.status === statusFilter;
 
             return matchesSearch && matchesSeverity && matchesStatus;
+        }).sort((a, b) => {
+            return (severityOrder[a.severity] ?? Number.MAX_SAFE_INTEGER)
+                - (severityOrder[b.severity] ?? Number.MAX_SAFE_INTEGER);
         });
     }, [alerts, searchQuery, severityFilter, statusFilter]);
 
@@ -201,8 +212,8 @@ export default function AlertsPage({ alerts = [], onAcknowledge, onResolve }) {
                             >
                                 <option value="ALL">All Severities</option>
                                 <option value="HIGH">High Only</option>
-                                <option value="MEDIUM">Medium Only</option>
-                                <option value="LOW">Low Only</option>
+                                <option value="MONITOR">Monitor Only</option>
+                                <option value="STABLE">Stable Only</option>
                             </select>
                         </div>
 
@@ -226,11 +237,24 @@ export default function AlertsPage({ alerts = [], onAcknowledge, onResolve }) {
                                 <option value="ALL">All Statuses</option>
                                 <option value="Active">Active</option>
                                 <option value="Acknowledged">Acknowledged</option>
-                                <option value="Resolved">Resolved</option>
                             </select>
                         </div>
                     </div>
                 </div>
+
+                {error && (
+                    <div style={{
+                        backgroundColor: '#fee2e2',
+                        color: '#991b1b',
+                        border: '1px solid #fca5a5',
+                        borderRadius: '12px',
+                        padding: '14px 18px',
+                        marginBottom: '20px',
+                        fontWeight: '700'
+                    }}>
+                        {error}
+                    </div>
+                )}
 
                 {/* Alerts List */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
@@ -254,6 +278,7 @@ export default function AlertsPage({ alerts = [], onAcknowledge, onResolve }) {
                             return (
                                 <div
                                     key={alert.id}
+                                    onClick={() => navigate(`/patients?patientId=${encodeURIComponent(alert.patientId)}`)}
                                     style={{
                                         backgroundColor: '#ffffff',
                                         borderRadius: '18px',
@@ -263,10 +288,11 @@ export default function AlertsPage({ alerts = [], onAcknowledge, onResolve }) {
                                         justify: 'space-between',
                                         alignItems: 'center',
                                         gap: '24px',
-                                        opacity: alert.status === 'Resolved' ? 0.65 : 1
+                                        opacity: alert.status === 'Resolved' ? 0.65 : 1,
+                                        cursor: 'pointer'
                                     }}
                                 >
-                                    <div style={{ flex: 1 }}>
+                                    <div style={{ flex: 1, minWidth: 0 }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
                                             <div style={{
                                                 background: severityInfo.bgColor,
@@ -313,7 +339,10 @@ export default function AlertsPage({ alerts = [], onAcknowledge, onResolve }) {
                                         {alert.status === 'Active' && (
                                             <>
                                                 <button
-                                                    onClick={() => onAcknowledge(alert.id)}
+                                                    onClick={(event) => {
+                                                        event.stopPropagation();
+                                                        onAcknowledge(alert.id);
+                                                    }}
                                                     style={{
                                                         backgroundColor: '#f1f5f9',
                                                         border: '2px solid #cbd5e1',
@@ -332,26 +361,6 @@ export default function AlertsPage({ alerts = [], onAcknowledge, onResolve }) {
                                                     Acknowledge
                                                 </button>
 
-                                                <button
-                                                    onClick={() => onResolve(alert.id)}
-                                                    style={{
-                                                        background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                                                        border: 'none',
-                                                        color: '#ffffff',
-                                                        padding: '10px 18px',
-                                                        borderRadius: '12px',
-                                                        fontSize: '14px',
-                                                        fontWeight: '800',
-                                                        cursor: 'pointer',
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                        gap: '6px',
-                                                        boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)'
-                                                    }}
-                                                >
-                                                    <CheckCircle2 size={16} />
-                                                    Resolve
-                                                </button>
                                             </>
                                         )}
 
@@ -368,45 +377,7 @@ export default function AlertsPage({ alerts = [], onAcknowledge, onResolve }) {
                                                 }}>
                                                     Acknowledged
                                                 </span>
-                                                <button
-                                                    onClick={() => onResolve(alert.id)}
-                                                    style={{
-                                                        background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                                                        border: 'none',
-                                                        color: '#ffffff',
-                                                        padding: '10px 18px',
-                                                        borderRadius: '12px',
-                                                        fontSize: '14px',
-                                                        fontWeight: '800',
-                                                        cursor: 'pointer',
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                        gap: '6px',
-                                                        boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)'
-                                                    }}
-                                                >
-                                                    <CheckCircle2 size={16} />
-                                                    Resolve
-                                                </button>
                                             </>
-                                        )}
-
-                                        {alert.status === 'Resolved' && (
-                                            <span style={{
-                                                fontSize: '13px',
-                                                fontWeight: '800',
-                                                color: '#059669',
-                                                backgroundColor: '#ecfdf5',
-                                                padding: '6px 16px',
-                                                borderRadius: '20px',
-                                                border: '1px solid #a7f3d0',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                gap: '6px'
-                                            }}>
-                                                <CheckCircle2 size={16} />
-                                                Resolved
-                                            </span>
                                         )}
                                     </div>
                                 </div>

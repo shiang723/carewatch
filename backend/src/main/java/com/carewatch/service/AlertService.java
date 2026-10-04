@@ -1,6 +1,8 @@
 package com.carewatch.service;
 
 import com.carewatch.model.alert.PatientStatus;
+import com.carewatch.model.alert.Alert;
+import com.carewatch.repository.AlertRepository;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -11,6 +13,31 @@ import org.springframework.stereotype.Service;
 @Service
 public class AlertService
 {
+    private final AlertRepository alertRepository;
+
+    public AlertService(AlertRepository alertRepository) {
+        this.alertRepository = alertRepository;
+    }
+
+    public List<Alert> getAlerts() {
+        return alertRepository.findAll();
+    }
+
+    public Optional<Alert> acknowledgeAlert(Long id) {
+        return alertRepository.acknowledge(id);
+    }
+
+    public void recordAlert(PatientStatus status) {
+        String description = String.join(" ", status.getReasons());
+        boolean alreadyRecorded = alertRepository.findLatestByPatientId(status.getPatientId())
+                .map(alert -> alert.getSeverity().equals(status.getPriority())
+                        && alert.getDescription().equals(description))
+                .orElse(false);
+        if (!alreadyRecorded) {
+            alertRepository.save(status.getPatientId(), status.getPriority(), description);
+        }
+    }
+
     private static final int MIN_HEART_RATE_STABLE = 60;
     private static final int MAX_HEART_RATE_STABLE = 100;
     private static final int MIN_HEART_RATE_MONITOR_BELOW = 41;

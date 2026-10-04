@@ -19,8 +19,13 @@ export default function Sidebar({ alertCount = 0 }) {
             flexDirection: 'column',
             justifyContent: 'space-between',
             padding: '1.5rem 1rem',
-            minHeight: '100vh',
-            boxSizing: 'border-box'
+            height: '100vh',
+            boxSizing: 'border-box',
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            overflowY: 'auto',
+            zIndex: 10
         }}>
             <div>
                 {/* Upper Left Corner Logo */}

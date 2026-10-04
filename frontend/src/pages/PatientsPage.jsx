@@ -1,17 +1,44 @@
 import React, { useState, useMemo } from 'react';
-import { Search, AlertTriangle, Heart, Droplets, Thermometer, ShieldAlert } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
+import { Search, AlertTriangle, Heart, Droplets, ShieldAlert, Thermometer } from 'lucide-react';
 
-export default function PatientsPage() {
-    const [searchQuery, setSearchQuery] = useState('');
+function getHeartRatePriority(heartRate) {
+    if (heartRate >= 60 && heartRate <= 100) return 'STABLE';
+    if (heartRate > 120 || heartRate <= 40) return 'HIGH';
+    return 'MONITOR';
+}
+
+function getSpo2Priority(spo2) {
+    if (spo2 >= 95) return 'STABLE';
+    if (spo2 >= 90) return 'MONITOR';
+    return 'HIGH';
+}
+
+function getTemperaturePriority(temperature) {
+    if (temperature >= 36 && temperature <= 37.5) return 'STABLE';
+    if (temperature >= 38 || temperature < 35) return 'HIGH';
+    return 'MONITOR';
+}
+
+export default function PatientsPage({ patients = [] }) {
+    const [searchParams] = useSearchParams();
+    const [searchQuery, setSearchQuery] = useState(searchParams.get('patientId') ?? '');
     const [sortBy, setSortBy] = useState('Priority');
 
-    const initialPatients = [
-        { id: 'A104', hr: 128, hrWarn: true, spo2: 87, spo2Warn: true, temp: '38.4°C', tempWarn: true, status: 'HIGH', priorityScore: 1 },
-        { id: 'A102', hr: 108, hrWarn: true, spo2: 93, spo2Warn: false, temp: '37.9°C', tempWarn: false, status: 'WATCH', priorityScore: 2 },
-        { id: 'A105', hr: 115, hrWarn: true, spo2: 94, spo2Warn: false, temp: '38.6°C', tempWarn: true, status: 'WATCH', priorityScore: 3 },
-        { id: 'A101', hr: 78, hrWarn: false, spo2: 98, spo2Warn: false, temp: '36.7°C', tempWarn: false, status: 'STABLE', priorityScore: 4 },
-        { id: 'A103', hr: 88, hrWarn: false, spo2: 96, spo2Warn: false, temp: '37.2°C', tempWarn: false, status: 'STABLE', priorityScore: 5 },
-    ];
+    const patientRows = patients.map((patient) => {
+        const vitals = patient.status || {};
+        return {
+            id: patient.patientId,
+            hr: vitals.currentHeartRate,
+            hrPriority: getHeartRatePriority(vitals.currentHeartRate),
+            spo2: vitals.currentSpO2,
+            spo2Priority: getSpo2Priority(vitals.currentSpO2),
+            temp: `${vitals.currentTemperature}°C`,
+            tempPriority: getTemperaturePriority(vitals.currentTemperature),
+            status: vitals.priority,
+            priorityScore: { HIGH: 1, MONITOR: 2, STABLE: 3 }[vitals.priority] ?? 4
+        };
+    });
 
     const getStatusStyle = (status) => {
         switch (status) {
@@ -23,7 +50,7 @@ export default function PatientsPage() {
                     badgeShadow: '0 4px 14px rgba(239, 68, 68, 0.4)',
                     cardGlow: '0 6px 24px -2px rgba(239, 68, 68, 0.15)'
                 };
-            case 'WATCH':
+            case 'MONITOR':
                 return {
                     dotColor: '#f59e0b',
                     badgeBg: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
@@ -44,7 +71,7 @@ export default function PatientsPage() {
     };
 
     const filteredPatients = useMemo(() => {
-        let result = initialPatients.filter(p =>
+        let result = patientRows.filter(p =>
             p.id.toLowerCase().includes(searchQuery.toLowerCase().trim())
         );
 
@@ -57,7 +84,7 @@ export default function PatientsPage() {
         }
 
         return result;
-    }, [searchQuery, sortBy]);
+    }, [patientRows, searchQuery, sortBy]);
 
     return (
         <div style={{
@@ -111,6 +138,29 @@ export default function PatientsPage() {
                                 boxShadow: '0 4px 14px rgba(0, 0, 0, 0.04)'
                             }}
                         />
+                        {searchQuery && (
+                            <button
+                                type="button"
+                                aria-label="Clear patient search"
+                                onClick={() => setSearchQuery('')}
+                                style={{
+                                    position: 'absolute',
+                                    right: '14px',
+                                    top: '50%',
+                                    transform: 'translateY(-50%)',
+                                    border: 'none',
+                                    background: 'transparent',
+                                    color: '#64748b',
+                                    fontSize: '20px',
+                                    fontWeight: '700',
+                                    lineHeight: 1,
+                                    cursor: 'pointer',
+                                    padding: '4px 8px'
+                                }}
+                            >
+                                ×
+                            </button>
+                        )}
                     </div>
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -160,6 +210,21 @@ export default function PatientsPage() {
                         <tbody>
                         {filteredPatients.map((patient, index) => {
                             const style = getStatusStyle(patient.status);
+                            const getVitalBadge = (priority) => priority === 'HIGH'
+                                ? {
+                                    background: '#fee2e2',
+                                    border: '#fca5a5',
+                                    color: '#b91c1c',
+                                    iconColor: '#dc2626',
+                                    label: 'HIGH'
+                                }
+                                : priority === 'MONITOR' ? {
+                                    background: '#fef3c7',
+                                    border: '#fde68a',
+                                    color: '#b45309',
+                                    iconColor: '#d97706',
+                                    label: 'MONITOR'
+                                } : null;
 
                             return (
                                 <tr
@@ -189,10 +254,12 @@ export default function PatientsPage() {
                                     <td style={{ padding: '22px 28px', borderRight: '2px solid #e2e8f0' }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                             <span style={{ fontSize: '17px', fontWeight: '800', color: '#0f172a' }}>{patient.hr} BPM</span>
-                                            {patient.hrWarn && (
-                                                <div style={{ background: '#fef3c7', padding: '5px 10px', borderRadius: '8px', border: '1px solid #fde68a', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                    <AlertTriangle size={16} color="#d97706" />
-                                                    <span style={{ fontSize: '12px', fontWeight: '800', color: '#b45309' }}>HIGH</span>
+                                            {getVitalBadge(patient.hrPriority) && (
+                                                <div style={{ background: getVitalBadge(patient.hrPriority).background, padding: '5px 10px', borderRadius: '8px', border: `1px solid ${getVitalBadge(patient.hrPriority).border}`, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                    {patient.hrPriority === 'HIGH'
+                                                        ? <ShieldAlert size={16} color={getVitalBadge(patient.hrPriority).iconColor} />
+                                                        : <AlertTriangle size={16} color={getVitalBadge(patient.hrPriority).iconColor} />}
+                                                    <span style={{ fontSize: '12px', fontWeight: '800', color: getVitalBadge(patient.hrPriority).color }}>{getVitalBadge(patient.hrPriority).label}</span>
                                                 </div>
                                             )}
                                         </div>
@@ -202,10 +269,12 @@ export default function PatientsPage() {
                                     <td style={{ padding: '22px 28px', borderRight: '2px solid #e2e8f0' }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                             <span style={{ fontSize: '17px', fontWeight: '800', color: '#0f172a' }}>{patient.spo2}%</span>
-                                            {patient.spo2Warn && (
-                                                <div style={{ background: '#fee2e2', padding: '5px 10px', borderRadius: '8px', border: '1px solid #fca5a5', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                    <ShieldAlert size={16} color="#dc2626" />
-                                                    <span style={{ fontSize: '12px', fontWeight: '800', color: '#b91c1c' }}>LOW</span>
+                                            {getVitalBadge(patient.spo2Priority) && (
+                                                <div style={{ background: getVitalBadge(patient.spo2Priority).background, padding: '5px 10px', borderRadius: '8px', border: `1px solid ${getVitalBadge(patient.spo2Priority).border}`, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                    {patient.spo2Priority === 'HIGH'
+                                                        ? <ShieldAlert size={16} color={getVitalBadge(patient.spo2Priority).iconColor} />
+                                                        : <AlertTriangle size={16} color={getVitalBadge(patient.spo2Priority).iconColor} />}
+                                                    <span style={{ fontSize: '12px', fontWeight: '800', color: getVitalBadge(patient.spo2Priority).color }}>{getVitalBadge(patient.spo2Priority).label}</span>
                                                 </div>
                                             )}
                                         </div>
@@ -215,10 +284,12 @@ export default function PatientsPage() {
                                     <td style={{ padding: '22px 28px', borderRight: '2px solid #e2e8f0' }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                             <span style={{ fontSize: '17px', fontWeight: '800', color: '#0f172a' }}>{patient.temp}</span>
-                                            {patient.tempWarn && (
-                                                <div style={{ background: '#fef3c7', padding: '5px 10px', borderRadius: '8px', border: '1px solid #fde68a', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                    <AlertTriangle size={16} color="#d97706" />
-                                                    <span style={{ fontSize: '12px', fontWeight: '800', color: '#b45309' }}>FEVER</span>
+                                            {getVitalBadge(patient.tempPriority) && (
+                                                <div style={{ background: getVitalBadge(patient.tempPriority).background, padding: '5px 10px', borderRadius: '8px', border: `1px solid ${getVitalBadge(patient.tempPriority).border}`, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                    {patient.tempPriority === 'HIGH'
+                                                        ? <ShieldAlert size={16} color={getVitalBadge(patient.tempPriority).iconColor} />
+                                                        : <AlertTriangle size={16} color={getVitalBadge(patient.tempPriority).iconColor} />}
+                                                    <span style={{ fontSize: '12px', fontWeight: '800', color: getVitalBadge(patient.tempPriority).color }}>{getVitalBadge(patient.tempPriority).label}</span>
                                                 </div>
                                             )}
                                         </div>

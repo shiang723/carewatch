@@ -9,13 +9,21 @@ import {
     ChevronRight
 } from 'lucide-react';
 
-export default function DashboardPage() {
+export default function DashboardPage({ alerts = [], patients = [] }) {
     const navigate = useNavigate();
+
+    const statusCounts = patients.reduce((counts, patient) => {
+        const priority = patient.status?.priority;
+        if (priority === 'HIGH') counts.high += 1;
+        if (priority === 'MONITOR') counts.monitor += 1;
+        if (priority === 'STABLE') counts.stable += 1;
+        return counts;
+    }, { high: 0, monitor: 0, stable: 0 });
 
     const stats = [
         {
             label: 'Total Patients',
-            value: 12,
+            value: patients.length,
             icon: Users,
             accentColor: '#3b82f6',
             gradientBg: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)',
@@ -24,7 +32,7 @@ export default function DashboardPage() {
         },
         {
             label: 'Stable',
-            value: 8,
+            value: statusCounts.stable,
             dotColor: '#10b981',
             gradientBg: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)',
             borderColor: '#a7f3d0',
@@ -32,7 +40,7 @@ export default function DashboardPage() {
         },
         {
             label: 'Monitor',
-            value: 3,
+            value: statusCounts.monitor,
             dotColor: '#f59e0b',
             gradientBg: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)',
             borderColor: '#fde68a',
@@ -40,7 +48,7 @@ export default function DashboardPage() {
         },
         {
             label: 'Critical Alert',
-            value: 1,
+            value: statusCounts.high,
             dotColor: '#ef4444',
             gradientBg: 'linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%)',
             borderColor: '#fca5a5',
@@ -48,16 +56,40 @@ export default function DashboardPage() {
         },
     ];
 
-    const recentAlerts = [
-        { id: 1, patient: 'A104', type: 'Low SpO2 & Elevated HR', time: '5m ago', priority: 'HIGH' },
-        { id: 2, patient: 'A103', type: 'Temperature Spike (37.2°C)', time: '22m ago', priority: 'MEDIUM' },
-        { id: 3, patient: 'A108', type: 'Sensor Disconnected', time: '45m ago', priority: 'LOW' },
-    ];
+    const severityOrder = {
+        HIGH: 0,
+        MONITOR: 1,
+        STABLE: 2
+    };
 
-    const priorityPatients = [
-        { id: 'A104', hr: '128 BPM', spo2: '87%', temp: '38.4°C', status: 'HIGH' },
-        { id: 'A103', hr: '110 BPM', spo2: '94%', temp: '37.2°C', status: 'WATCH' },
-    ];
+    const recentAlerts = [...alerts]
+        .sort((a, b) => {
+            const severityDifference =
+                (severityOrder[a.severity] ?? Number.MAX_SAFE_INTEGER)
+                - (severityOrder[b.severity] ?? Number.MAX_SAFE_INTEGER);
+
+            return severityDifference || new Date(b.timestamp) - new Date(a.timestamp);
+        })
+        .slice(0, 3)
+        .map((alert) => ({
+            id: alert.id,
+            patient: alert.patientId,
+            type: alert.message,
+            time: formatRelativeTime(alert.timestamp),
+            priority: alert.severity
+        }));
+
+    const priorityPatients = patients
+        .filter((patient) => patient.status?.priority !== 'STABLE')
+        .sort((a, b) => severityOrder[a.status?.priority] - severityOrder[b.status?.priority])
+        .slice(0, 2)
+        .map((patient) => ({
+            id: patient.patientId,
+            hr: `${patient.status.currentHeartRate} BPM`,
+            spo2: `${patient.status.currentSpO2}%`,
+            temp: `${patient.status.currentTemperature}°C`,
+            status: patient.status.priority
+        }));
 
     return (
         <div style={{
@@ -184,10 +216,13 @@ export default function DashboardPage() {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                         {recentAlerts.map((alert) => {
                             const isHigh = alert.priority === 'HIGH';
-                            const isMedium = alert.priority === 'MEDIUM';
+                            const isMedium = alert.priority === 'MONITOR';
 
                             return (
-                                <div key={alert.id} style={{
+                                <div
+                                    key={alert.id}
+                                    onClick={() => navigate(`/patients?patientId=${encodeURIComponent(alert.patient)}`)}
+                                    style={{
                                     padding: '18px 24px',
                                     borderRadius: '14px',
                                     border: isHigh ? '1.5px solid #fca5a5' : isMedium ? '1.5px solid #fde68a' : '1px solid #e2e8f0',
@@ -196,9 +231,10 @@ export default function DashboardPage() {
                                     display: 'flex',
                                     justify: 'space-between',
                                     alignItems: 'center',
-                                    boxShadow: isHigh ? '0 4px 12px rgba(239, 68, 68, 0.08)' : 'none'
+                                    boxShadow: isHigh ? '0 4px 12px rgba(239, 68, 68, 0.08)' : 'none',
+                                    cursor: 'pointer'
                                 }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flex: 1, minWidth: 0, paddingRight: '32px' }}>
                                         <span style={{
                                             padding: '6px 14px', borderRadius: '8px', fontSize: '11px', fontWeight: '900', letterSpacing: '0.06em',
                                             background: isHigh ? '#dc2626' : isMedium ? '#d97706' : '#64748b',
@@ -207,12 +243,12 @@ export default function DashboardPage() {
                                         }}>
                                             {alert.priority}
                                         </span>
-                                        <div>
+                                        <div style={{ minWidth: 0 }}>
                                             <p style={{ margin: 0, fontSize: '16px', fontWeight: '800', color: '#0f172a' }}>Patient {alert.patient}</p>
-                                            <p style={{ margin: 0, fontSize: '14px', color: '#475569', marginTop: '2px', fontWeight: '500' }}>{alert.type}</p>
+                                            <p style={{ margin: 0, fontSize: '14px', color: '#475569', marginTop: '2px', fontWeight: '500', overflowWrap: 'anywhere' }}>{alert.type}</p>
                                         </div>
                                     </div>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: '#64748b', fontWeight: '600', background: '#ffffff', padding: '6px 12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0, minWidth: '88px', whiteSpace: 'nowrap', fontSize: '13px', color: '#64748b', fontWeight: '600', background: '#ffffff', padding: '6px 12px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
                                         <Clock size={14} color="#64748b" />
                                         <span>{alert.time}</span>
                                     </div>
@@ -238,7 +274,7 @@ export default function DashboardPage() {
                             <h2 style={{ fontSize: '19px', fontWeight: '800', color: '#0f172a', margin: 0 }}>Patients Requiring Attention</h2>
                         </div>
                         <button
-                            onClick={() => navigate('/patients')}
+                            onClick={() => navigate(`/patients?patientId=${encodeURIComponent(patient.id)}`)}
                             style={{
                                 background: '#eff6ff',
                                 border: '1px solid #bfdbfe',
@@ -295,4 +331,25 @@ export default function DashboardPage() {
             </div>
         </div>
     );
+}
+
+function formatRelativeTime(timestamp) {
+    const elapsedMinutes = Math.max(
+        0,
+        Math.floor((Date.now() - new Date(timestamp).getTime()) / 60000)
+    );
+
+    if (elapsedMinutes < 1) {
+        return 'just now';
+    }
+    if (elapsedMinutes < 60) {
+        return `${elapsedMinutes}m ago`;
+    }
+
+    const elapsedHours = Math.floor(elapsedMinutes / 60);
+    if (elapsedHours < 24) {
+        return `${elapsedHours}h ago`;
+    }
+
+    return `${Math.floor(elapsedHours / 24)}d ago`;
 }
