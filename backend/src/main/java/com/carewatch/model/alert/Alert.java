@@ -2,28 +2,31 @@ package com.carewatch.model.alert;
 
 import java.time.LocalDateTime;
 
-class Alert
+public class Alert
 {
-    private final String patientID;
-    private final Long id;
-    private final LocalDateTime timestamp;
-    private final String severity;
-    private final String description;
+    private String patientID;
+    private Long id;
+    private LocalDateTime timestamp;
+    private String severity;
+    private String description;
     private boolean isAcknowledged;
 
-     Alert(final String patientID,
+    public Alert() {
+    }
+
+    public Alert(final String patientID,
                  final Long id,
                  final LocalDateTime timestamp,
                  final String severity,
                  final String description,
-                 final boolean isAcknowledged)
+                 final Boolean isAcknowledged)
     {
         this.patientID = patientID;
         this.id = id;
         this.timestamp = timestamp;
         this.severity = severity;
         this.description = description;
-        this.isAcknowledged = isAcknowledged;
+        this.isAcknowledged = Boolean.TRUE.equals(isAcknowledged);
     }
 
     public String getPatientID()
@@ -31,9 +34,19 @@ class Alert
         return patientID;
     }
 
+    public void setPatientID(String patientID)
+    {
+        this.patientID = patientID;
+    }
+
     public Long getId()
     {
         return id;
+    }
+
+    public void setId(Long id)
+    {
+        this.id = id;
     }
 
     public LocalDateTime getTimestamp()
@@ -41,14 +54,29 @@ class Alert
         return timestamp;
     }
 
+    public void setTimestamp(LocalDateTime timestamp)
+    {
+        this.timestamp = timestamp;
+    }
+
     public String getSeverity()
     {
         return severity;
     }
 
+    public void setSeverity(String severity)
+    {
+        this.severity = severity;
+    }
+
     public String getDescription()
     {
         return description;
+    }
+
+    public void setDescription(String description)
+    {
+        this.description = description;
     }
 
     public boolean isAcknowledged()

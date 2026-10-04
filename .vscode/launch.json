@@ -1,0 +1,14 @@
+{
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Spring Boot-BackendApplication<carewatch>",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "mainClass": "com.carewatch.BackendApplication",
+            "projectName": "carewatch",
+            "args": "",
+            "envFile": "${workspaceFolder}/.env"
+        }
+    ]
+}

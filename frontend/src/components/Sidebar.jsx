@@ -1,14 +1,14 @@
-import { NavLink } from 'react-router-dom'
+import React from 'react';
+import { NavLink } from 'react-router-dom';
+import carewatchLogo from '../assets/carewatch_logo.png';
 
-export default function Sidebar() {
+export default function Sidebar({ alertCount = 0 }) {
     const navItems = [
         { label: 'Dashboard', path: '/', icon: '🏠' },
         { label: 'Patients', path: '/patients', icon: '👥' },
-        { label: 'Alerts', path: '/alerts', icon: '🚨', badge: 3 },
-        { label: 'Analytics', path: '/analytics', icon: '📊' },
+        { label: 'Alerts', path: '/alerts', icon: '🚨', badge: alertCount },
         { label: 'AI', path: '/ai', icon: '🤖' },
-        { label: 'Settings', path: '/settings', icon: '⚙️' }
-    ]
+    ];
 
     return (
         <aside style={{
@@ -19,14 +19,35 @@ export default function Sidebar() {
             flexDirection: 'column',
             justifyContent: 'space-between',
             padding: '1.5rem 1rem',
-            minHeight: '100vh'
+            height: '100vh',
+            boxSizing: 'border-box',
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            overflowY: 'auto',
+            zIndex: 10
         }}>
             <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '2.5rem', paddingLeft: '0.5rem' }}>
-                    <span style={{ fontSize: '1.5rem' }}>🩺</span>
-                    <h2 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0 }}>CareWatch</h2>
+                {/* Upper Left Corner Logo */}
+                <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginBottom: '2rem',
+                    paddingTop: '0.5rem'
+                }}>
+                    <img
+                        src={carewatchLogo}
+                        alt="CareWatch Logo"
+                        style={{
+                            maxHeight: '52px',
+                            maxWidth: '100%',
+                            objectFit: 'contain'
+                        }}
+                    />
                 </div>
 
+                {/* Navigation Links */}
                 <nav style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
                     {navItems.map((item) => (
                         <NavLink
@@ -49,7 +70,7 @@ export default function Sidebar() {
                                 <span>{item.icon}</span>
                                 <span>{item.label}</span>
                             </div>
-                            {item.badge && (
+                            {item.badge > 0 && (
                                 <span style={{
                                     backgroundColor: '#ef4444',
                                     color: '#fff',
@@ -58,18 +79,13 @@ export default function Sidebar() {
                                     borderRadius: '9999px',
                                     padding: '0.15rem 0.5rem'
                                 }}>
-                  {item.badge}
-                </span>
+                                    {item.badge}
+                                </span>
                             )}
                         </NavLink>
                     ))}
                 </nav>
             </div>
-
-            <div style={{ paddingLeft: '0.5rem', color: '#64748b', fontSize: '0.8rem' }}>
-                <p style={{ margin: 0 }}>Better insights.</p>
-                <p style={{ margin: 0 }}>Healthier tomorrows.</p>
-            </div>
         </aside>
-    )
+    );
 }

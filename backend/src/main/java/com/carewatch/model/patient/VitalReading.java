@@ -6,6 +6,9 @@ public class VitalReading {
     private int spo2;
     private double temperature;
 
+    public VitalReading() {
+    }
+
     public VitalReading(int heartRate, int spo2, double temperature) {
         this.heartRate = heartRate;
         this.spo2 = spo2;
@@ -13,6 +16,9 @@ public class VitalReading {
     }
 
     public int getHeartRate() { return heartRate; }
+    public void setHeartRate(int heartRate) { this.heartRate = heartRate; }
     public int getSpo2() { return spo2; }
+    public void setSpo2(int spo2) { this.spo2 = spo2; }
     public double getTemperature() { return temperature; }
+    public void setTemperature(double temperature) { this.temperature = temperature; }
 }

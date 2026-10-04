@@ -1,6 +1,8 @@
 package com.carewatch.service;
 
 import com.carewatch.model.alert.PatientStatus;
+import com.carewatch.model.alert.Alert;
+import com.carewatch.repository.AlertRepository;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -11,6 +13,31 @@ import org.springframework.stereotype.Service;
 @Service
 public class AlertService
 {
+    private final AlertRepository alertRepository;
+
+    public AlertService(AlertRepository alertRepository) {
+        this.alertRepository = alertRepository;
+    }
+
+    public List<Alert> getAlerts() {
+        return alertRepository.findAll();
+    }
+
+    public Optional<Alert> acknowledgeAlert(Long id) {
+        return alertRepository.acknowledge(id);
+    }
+
+    public void recordAlert(PatientStatus status) {
+        String description = String.join(" ", status.getReasons());
+        boolean alreadyRecorded = alertRepository.findLatestByPatientId(status.getPatientId())
+                .map(alert -> alert.getSeverity().equals(status.getPriority())
+                        && alert.getDescription().equals(description))
+                .orElse(false);
+        if (!alreadyRecorded) {
+            alertRepository.save(status.getPatientId(), status.getPriority(), description);
+        }
+    }
+
     private static final int MIN_HEART_RATE_STABLE = 60;
     private static final int MAX_HEART_RATE_STABLE = 100;
     private static final int MIN_HEART_RATE_MONITOR_BELOW = 41;
@@ -55,7 +82,7 @@ public class AlertService
         }
         else if (heartRate > MAX_HEART_RATE_STABLE && heartRate <= HEART_RATE_HIGH_THRESHOLD) {
             priority = "MONITOR";
-            reasons.add("Elevated heart rate.");
+            reasons.add("Higher heart rate than normal.");
         }
         else if (heartRate < MIN_HEART_RATE_STABLE && heartRate >= MIN_HEART_RATE_MONITOR_BELOW) {
             priority = "MONITOR";
@@ -67,7 +94,7 @@ public class AlertService
             reasons.add("Normal oxygen saturation.");
         }
         else if (spO2 >= SPO2_MONITOR_MIN_THRESHOLD){
-            priority = "MONITOR";
+            priority = !priority.equals("HIGH") ?"MONITOR": "HIGH";
             reasons.add("Lower oxygen saturation than normal.");
         } else {
             priority = "HIGH";
@@ -81,7 +108,7 @@ public class AlertService
             priority = "HIGH";
             reasons.add( temperature < TEMPERATURE_HIGH_LOW_THRESHOLD? "Temperature is too low.": "Temperature is too high.");
         } else{
-            priority = "MONITOR";
+            priority = !priority.equals("HIGH") ?"MONITOR": "HIGH";
             reasons.add(temperature < TEMPERATURE_STABLE_MIN? "Temperature is lower than normal." : "Temperature is higher than normal.");
         }
 

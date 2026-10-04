@@ -27,21 +27,21 @@ public class PatientController {
     }
 
     @GetMapping("/{patientId}")
-    public ResponseEntity<Patient> getPatient(@PathVariable String patientId) {
+    public ResponseEntity<Patient> getPatient(@PathVariable("patientId") String patientId) {
         return patientService.getPatient(patientId)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @GetMapping("/{patientId}/vitals")
-    public ResponseEntity<VitalReading> getCurrentVitals(@PathVariable String patientId) {
+    public ResponseEntity<VitalReading> getCurrentVitals(@PathVariable("patientId") String patientId) {
         return patientService.getCurrentVitals(patientId)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @GetMapping("/{patientId}/history")
-    public ResponseEntity<List<VitalReading>> getHistory(@PathVariable String patientId) {
+    public ResponseEntity<List<VitalReading>> getHistory(@PathVariable("patientId") String patientId) {
         return patientService.getHistory(patientId)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
