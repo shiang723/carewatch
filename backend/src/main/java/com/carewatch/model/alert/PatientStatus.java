@@ -1,8 +1,6 @@
 package com.carewatch.model.alert;
 import java.util.List;
-import org.springframework.stereotype.Service;
 
-@Service
 public class PatientStatus
 {
     private final String patientId;
