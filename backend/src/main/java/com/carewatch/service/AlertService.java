@@ -1,9 +1,11 @@
-package com.carewatch.service.alert;
+package com.carewatch.service;
 
 import com.carewatch.model.alert.PatientStatus;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
+import com.carewatch.model.patient.VitalReading;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -11,7 +13,6 @@ public class AlertService
 {
     private static final int MIN_HEART_RATE_STABLE = 60;
     private static final int MAX_HEART_RATE_STABLE = 100;
-    private static final int MIN_HEART_RATE_MONITOR_ABOVE = 101;
     private static final int MIN_HEART_RATE_MONITOR_BELOW = 41;
     private static final int HEART_RATE_HIGH_THRESHOLD = 120;
     private static final int MIN_HEART_RATE_HIGH_BELOW = 0;
@@ -27,16 +28,17 @@ public class AlertService
 
 
     public PatientStatus determinePatientStatus(String patientId,
-                                                VitalReading latestVitals)
+                                                Optional<VitalReading> latestVitals)
     {
-        if (latestVitals == null)
+        if (latestVitals.isEmpty())
         {
             return new PatientStatus(patientId, 0, 0, 0, "STABLE", List.of("No readings available"));
         }
 
-        int heartRate = latestVitals.getHeartRate();
-        int spO2 = latestVitals.getSpo2();
-        double temperature = latestVitals.getTemperature();
+        var vitals = latestVitals.get();
+        int heartRate = vitals.getHeartRate();
+        int spO2 = vitals.getSpo2();
+        double temperature = vitals.getTemperature();
 
         List<String> reasons = new ArrayList<>();
         String priority = "STABLE";
@@ -50,14 +52,14 @@ public class AlertService
         {
             priority = "HIGH";
             reasons.add(heartRate > HEART_RATE_HIGH_THRESHOLD ? "Heart rate is too high." : "Heart rate is too low.");
-        } else if (heartRate >= MIN_HEART_RATE_MONITOR_ABOVE)
-        {
+        }
+        else if (heartRate > MAX_HEART_RATE_STABLE && heartRate <= HEART_RATE_HIGH_THRESHOLD) {
             priority = "MONITOR";
             reasons.add("Elevated heart rate.");
-        } else if (heartRate >= MIN_HEART_RATE_MONITOR_BELOW)
-        {
+        }
+        else if (heartRate < MIN_HEART_RATE_STABLE && heartRate >= MIN_HEART_RATE_MONITOR_BELOW) {
             priority = "MONITOR";
-            reasons.add("Elevated heart rate.");
+            reasons.add("Lower heart rate than normal.");
         }
 
 

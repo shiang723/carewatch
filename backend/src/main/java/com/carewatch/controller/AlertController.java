@@ -1,12 +1,14 @@
-package com.carewatch.controller.alert;
+package com.carewatch.controller;
 
 import com.carewatch.model.alert.PatientStatus;
 import com.carewatch.model.patient.VitalReading;
-import com.carewatch.service.alert.AlertService;
-import com.carewatch.service.patient.PatientService;
+import com.carewatch.service.AlertService;
+import com.carewatch.service.PatientService;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/alerts")
@@ -28,7 +30,7 @@ public class AlertController {
     @GetMapping("/patient/{patientId}/status")
     public ResponseEntity<PatientStatus> getPatientStatus(@PathVariable String patientId) {
 
-        VitalReading latestVitals = patientService.getLatestVitals(patientId);
+        Optional<VitalReading> latestVitals = patientService.getCurrentVitals(patientId);
         PatientStatus currentStatus = alertService.determinePatientStatus(patientId, latestVitals);
         return ResponseEntity.ok(currentStatus);
     }
